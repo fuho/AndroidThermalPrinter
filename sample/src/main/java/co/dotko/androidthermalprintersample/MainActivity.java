@@ -42,7 +42,6 @@ public class MainActivity extends Activity {
         initLeds();
         initButtons();
         initAlphanumericDisplay();
-
         logUartDevices();
     }
 
@@ -52,26 +51,6 @@ public class MainActivity extends Activity {
     }
 
     private void printTable() {
-/*
-        mPrinter.print(
-                "0123456789abcdef0123456789abcdef" +
-                "123456789abcdef0123456789abcdef0" +
-                "23456789abcdef0123456789abcdef01" +
-                "3456789abcdef0123456789abcdef012" +
-                "456789abcdef0123456789abcdef0123" +
-                "56789abcdef0123456789abcdef01234" +
-                "6789abcdef0123456789abcdef012345" +
-                "789abcdef0123456789abcdef0123456" +
-                "89abcdef0123456789abcdef01234567" +
-                "9abcdef0123456789abcdef012345678" +
-                "abcdef0123456789abcdef0123456789" +
-                "bcdef0123456789abcdef0123456789a" +
-                "cdef0123456789abcdef0123456789ab" +
-                "def0123456789abcdef0123456789abc" +
-                "ef0123456789abcdef0123456789abcd" +
-                "f0123456789abcdef0123456789abcde"
-        );
-*/
         mPrinter.print("Normal - NORMAL\n");
         mPrinter.setInverse(true);
         mPrinter.print("+ inversed INVERSED\n");
