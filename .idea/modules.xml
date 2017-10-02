@@ -3,8 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/AndroidThermalPrinter.iml" filepath="$PROJECT_DIR$/AndroidThermalPrinter.iml" />
-      <module fileurl="file://$PROJECT_DIR$/sample/sample.iml" filepath="$PROJECT_DIR$/sample/sample.iml" />
       <module fileurl="file://$PROJECT_DIR$/thermalPrinterDriver/app.iml" filepath="$PROJECT_DIR$/thermalPrinterDriver/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sample/sample.iml" filepath="$PROJECT_DIR$/sample/sample.iml" />
+      <module fileurl="file://$PROJECT_DIR$/thermalPrinterDriver/thermalPrinterDriver.iml" filepath="$PROJECT_DIR$/thermalPrinterDriver/thermalPrinterDriver.iml" />
     </modules>
   </component>
 </project>

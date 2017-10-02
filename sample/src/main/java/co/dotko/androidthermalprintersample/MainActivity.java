@@ -1,6 +1,9 @@
 package co.dotko.androidthermalprintersample;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -89,6 +92,15 @@ public class MainActivity extends Activity {
         mPrinter.print("- alternative FONT\n");
     }
 
+    private void printImage() {
+        final Bitmap bitmap = BitmapFactory.decodeResource(
+                getResources(),
+                R.drawable.sample_dithered_384x384
+        );
+        mPrinter.init();
+        mPrinter.printImage(bitmap);
+    }
+
     private void initUart() {
         Log.i(TAG, "Registering UART device");
         try {
@@ -156,7 +168,8 @@ public class MainActivity extends Activity {
                 return setLedValue(mLedRGpio, true);
             case KEYCODE_B:
                 displayText("LedB");
-                printTable();
+                // printTable();
+                printImage();
                 return setLedValue(mLedGGpio, true);
             default:
                 return false;
