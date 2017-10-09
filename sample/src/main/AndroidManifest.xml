@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="co.dotko.androidthermalprintersample">
     <uses-permission android:name="com.google.android.things.permission.MANAGE_INPUT_DRIVERS" />
+    <uses-permission android:name="android.permission.CAMERA"/>
 
     <application>
         <uses-library android:name="com.google.android.things" />

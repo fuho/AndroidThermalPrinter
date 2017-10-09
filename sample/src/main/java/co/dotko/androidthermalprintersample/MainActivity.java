@@ -3,8 +3,9 @@ package co.dotko.androidthermalprintersample;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
+import android.media.ImageReader;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -17,6 +18,8 @@ import com.google.android.things.pio.PeripheralManagerService;
 import com.google.android.things.pio.UartDevice;
 
 import java.io.IOException;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import co.dotko.androidthermalprinter.Command;
@@ -24,17 +27,19 @@ import co.dotko.androidthermalprinter.ThermalPrinter;
 
 import static android.view.KeyEvent.KEYCODE_A;
 import static android.view.KeyEvent.KEYCODE_B;
+import static android.view.KeyEvent.KEYCODE_C;
 
 public class MainActivity extends Activity {
     private static final String TAG = MainActivity.class.getSimpleName();
     public static final String UART_DEVICE_NAME = "UART6";
 
     private UartDevice mUart;
-    private Gpio mLedRGpio, mLedGGpio;
-    private ButtonInputDriver mButtonAInputDriver, mButtonBInputDriver;
+    private Gpio mLedRGpio, mLedGGpio, mLedBGpio;
+    private ButtonInputDriver mButtonAInputDriver, mButtonBInputDriver, mButtonCInputDriver;
     private AlphanumericDisplay mAlphanumericDisplay;
     private ThermalPrinter mPrinter;
-
+    private CameraHandler mCameraHandler;
+    private ImagePreprocessor mImagePreprocessor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +50,26 @@ public class MainActivity extends Activity {
         initLeds();
         initButtons();
         initAlphanumericDisplay();
+        initCamera();
         logUartDevices();
+    }
+
+    private void initCamera() {
+        mImagePreprocessor = new ImagePreprocessor();
+        mCameraHandler = CameraHandler.getInstance();
+        Handler threadLooper = new Handler(getMainLooper());
+
+        mCameraHandler.initializeCamera(
+                this,
+                threadLooper,
+                new ImageReader.OnImageAvailableListener() {
+                    @Override
+                    public void onImageAvailable(ImageReader imageReader) {
+                        Bitmap bitmap = mImagePreprocessor.preprocessImage(imageReader.acquireNextImage());
+                        printBitmap(bitmap);
+                    }
+                }
+        );
     }
 
     private void initPrinter(@NonNull final UartDevice uart) {
@@ -92,12 +116,16 @@ public class MainActivity extends Activity {
         mPrinter.print("- alternative FONT\n");
     }
 
-    private void printImage() {
+    private void printSampleImage() {
         final Bitmap bitmap = BitmapFactory.decodeResource(
                 getResources(),
                 R.drawable.sample_dithered_384x384
         );
         mPrinter.init();
+        printBitmap(bitmap);
+    }
+
+    private void printBitmap(final Bitmap bitmap) {
         mPrinter.printImage(bitmap);
     }
 
@@ -132,6 +160,8 @@ public class MainActivity extends Activity {
             mButtonAInputDriver.register();
             mButtonBInputDriver = RainbowHat.createButtonBInputDriver(KEYCODE_B);
             mButtonBInputDriver.register();
+            mButtonCInputDriver = RainbowHat.createButtonCInputDriver(KEYCODE_C);
+            mButtonCInputDriver.register();
         } catch (IOException e) {
             Log.e(TAG, "Error registering buttons", e);
         }
@@ -144,6 +174,8 @@ public class MainActivity extends Activity {
             mLedRGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             mLedGGpio = RainbowHat.openLedGreen();
             mLedGGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            mLedBGpio = RainbowHat.openLedBlue();
+            mLedBGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
         } catch (IOException e) {
             Log.e(TAG, "Error configuring LEDs", e);
         }
@@ -164,23 +196,19 @@ public class MainActivity extends Activity {
         displayText("");
         switch (keyCode) {
             case KEYCODE_A:
-                displayText("LedA");
+                displayText("RED");
                 return setLedValue(mLedRGpio, true);
             case KEYCODE_B:
-                displayText("LedB");
-                // printTable();
-                printImage();
+                displayText("GRN");
+                //printTable();
+                //printSampleImage();
                 return setLedValue(mLedGGpio, true);
+            case KEYCODE_C:
+                displayText("SNAP");
+                loadPhoto();
+                return true;
             default:
                 return false;
-        }
-    }
-
-    private void displayText(final String text) {
-        try {
-            mAlphanumericDisplay.display(text);
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -188,11 +216,32 @@ public class MainActivity extends Activity {
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         switch (keyCode) {
             case KEYCODE_A:
+                displayText();
                 return setLedValue(mLedRGpio, false);
             case KEYCODE_B:
+                displayText();
+                return setLedValue(mLedGGpio, false);
+            case KEYCODE_C:
+                displayText();
                 return setLedValue(mLedGGpio, false);
             default:
                 return false;
+        }
+    }
+
+    private void displayText() {
+        displayText(null);
+    }
+
+    private void displayText(final String text) {
+        try {
+            if (text == null) {
+                mAlphanumericDisplay.clear();
+            } else {
+                mAlphanumericDisplay.display(text);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -207,21 +256,24 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void closeCamera() {
+        mCameraHandler.shutDown();
+    }
+
+    private void loadPhoto() {
+        mCameraHandler.takePicture();
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
-        if (mButtonAInputDriver != null) {
-            mButtonAInputDriver.unregister();
-            try {
-                mButtonAInputDriver.close();
-            } catch (IOException e) {
-                Log.e(TAG, "Error closing Button driver", e);
-            } finally {
-                mButtonAInputDriver = null;
-            }
-        }
+        destroyButtonDriver(mButtonAInputDriver);
+        mButtonAInputDriver = null;
+        destroyButtonDriver(mButtonBInputDriver);
+        mButtonBInputDriver = null;
+        destroyButtonDriver(mButtonCInputDriver);
+        mButtonCInputDriver = null;
 
         if (mLedRGpio != null) {
             try {
@@ -250,6 +302,24 @@ public class MainActivity extends Activity {
                 Log.e(TAG, "Error closing UART device", e);
             } finally {
                 mUart = null;
+            }
+        }
+        if (mCameraHandler != null) {
+            try {
+                closeCamera();
+            } catch (Throwable t) {
+                Log.e(TAG, "Error closing camera", t);
+            }
+        }
+    }
+
+    private void destroyButtonDriver(ButtonInputDriver buttonDriver) {
+        if (buttonDriver != null) {
+            buttonDriver.unregister();
+            try {
+                buttonDriver.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Error closing Button driver", e);
             }
         }
     }
